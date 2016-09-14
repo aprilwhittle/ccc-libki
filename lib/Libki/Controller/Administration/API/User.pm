@@ -148,7 +148,8 @@ sub batch_create_guest : Local : Args(0) {
       $c->model('DB::Setting')->find('GuestPassFile')->value();
     my $current_guest_number_setting =
       $c->model('DB::Setting')->find('CurrentGuestNumber');
-
+    my $guest_batch_password =
+      $c->model('DB::Setting')->find('BatchGuestPassword')->value();
     my $current_guest_number = $current_guest_number_setting->value();
 
     $current_guest_number++;
@@ -161,8 +162,7 @@ sub batch_create_guest : Local : Args(0) {
 
         $current_guest_number = $current_guest_number + 1;
         my $username = "guest" . $current_guest_number;
-        my $password =
-          random_string("nnnn");    #TODO: Make the pattern a system setting
+        my $password = "" . $guest_batch_password;
 
         my $user = $c->model('DB::User')->create(
             {
