@@ -289,7 +289,7 @@
                 </span>
             </div>
         </div>
-
+    
         <div class="control-group">
             <label class="control-label" for="BatchGuestPassPasswordLabel">[% c.loc("Password label") %]</label>
             <div class="controls">
@@ -299,6 +299,17 @@
                 <span class="help-inline">
                     [% c.loc("The text in this field will be prepended to the guest password, for example <i>Password:</i>. This field is displayed in monospace for ease of formatting.") %]
                 </span>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label" for="BatchGuestPassword">[% c.loc("Set Password for Grpup Passes") %]</label>
+            <div class="controls">
+                <div class="input-append">
+                    <input type="text" class="input-small" id="BatchGuestPassword" name="BatchGuestPassword" value="[% BatchGuestPassword %]">
+                    <span class="add-on">[% c.loc("Password") %]</span>
+                </div>
+                <span class="help-inline">[% c.loc("The default password for group passes.") %]</span>
             </div>
         </div>
     </fieldset>
