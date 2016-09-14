@@ -8,6 +8,7 @@ INSERT IGNORE INTO settings ( name, value ) VALUES ('GuestBatchCount', 40);
 INSERT IGNORE INTO settings ( name, value ) VALUES ('GuestPassFile', '/mnt/share/guestpasses.txt');
 INSERT IGNORE INTO settings ( name, value ) VALUES ('BatchGuestPassUsernameLabel',  'Your Library            Username=  ' );
 INSERT IGNORE INTO settings ( name, value ) VALUES ('BatchGuestPassPasswordLabel',  'Computer Guest Pass     Password=   ');
+INSERT IGNORE INTO settings ( name, value ) VALUES ('BatchGuestPassword',  '');
 
 # Create two new settings to allow guests to default to a different time limit than users 
 # and give them the same amount as DefaultTimeAllowance to retain existing functionality.
