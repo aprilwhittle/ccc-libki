@@ -5,6 +5,9 @@ use namespace::autoclean;
 BEGIN { extends 'Catalyst::Controller'; }
 
 use Libki::SIP qw( authenticate_via_sip );
+##################################################################################################
+use Libki::ALMA qw( authenticate_via_alma );
+##################################################################################################
 use Libki::Hours qw( minutes_until_closing );
 
 use DateTime::Format::MySQL;
@@ -38,7 +41,7 @@ sub index : Path : Args(0) {
 
     if ( $action eq 'register_node' ) {
         my $node_name = $c->request->params->{'node_name'};
-        my $location  = $c->request->params->{'location'};
+        my $location = $c->request->params->{'location'};
 
         $c->model('DB::Location')->update_or_create(
             {
@@ -98,22 +101,23 @@ sub index : Path : Args(0) {
         my $reservation =
           $c->model('DB::Reservation')->search( {}, { 'username' => $reserved_for, 'name' => $client_name } )->next();
 
-        if ($reservation) {
-            unless ( $reservation->expiration() ) {
-                $reservation->expiration(
-                    DateTime::Format::MySQL->format_datetime(
-                        DateTime->now( time_zone => 'local' )->add_duration(
-                            DateTime::Duration->new(
-                                minutes => $c->stash->{'Settings'}->{'ReservationTimeout'}
-                            )
+        #if ($reservation) {
+        unless ( $reservation->expiration() ) {
+            $reservation->expiration(
+                DateTime::Format::MySQL->format_datetime(
+                    DateTime->now( time_zone => 'local' )->add_duration(
+                        DateTime::Duration->new(
+                            minutes => $c->stash->{'Settings'}->{'ReservationTimeout'}
                         )
                     )
-                );
-                $reservation->update();
-            }
+                )
+            );
+            $reservation->update();
         }
+      #}
     }
     else {
+$log->debug( "action: " . $action );
         my $username        = $c->request->params->{'username'};
         my $password        = $c->request->params->{'password'};
         my $client_name     = $c->request->params->{'node'};
@@ -125,7 +129,7 @@ sub index : Path : Args(0) {
             $log->debug( __PACKAGE__ . " - username: $username, client_name: $client_name" );
 
             ## If SIP is enabled, try SIP first, unless we have a guest or staff account
-            my ( $success, $error, $sip_fields ) = ( 1, undef, undef );
+            my ( $success, $error ) = ( 1, undef );
             if ( $c->config->{SIP}->{enable} ) {
                 if (
                     !$user
@@ -138,13 +142,26 @@ sub index : Path : Args(0) {
                     $success = $ret->{success};
                     $error   = $ret->{error};
                     $user    = $ret->{user};
-
-                    $sip_fields = $ret->{sip_fields};
-                    if ( $sip_fields ) {
-                        $c->stash( hold_items_count => $sip_fields->{hold_items_count} );
-                    }
                 }
             }
+##################################################################################################
+	    ## If ALMA is enabled, try ALMA, unless we have a guest or staff account
+            if ( $c->config->{ALMA}->{enable} ) {
+	    	$log->debug( __PACKAGE__ . " attempting ALMA authentication" );
+                if (
+                    !$user
+                    || (   $user
+                        && $user->is_guest() eq 'No'
+                        && !$c->check_any_user_role( $user, qw/admin superadmin/ ) )
+                  )
+                {
+                    my $ret = Libki::ALMA::authenticate_via_alma( $c, $user, $username, $password );
+                    $success = $ret->{success};
+                    $error   = $ret->{error};
+                    $user    = $ret->{user};
+                }
+            }
+##################################################################################################
 
             ## Process client requests
             if ($success) {
@@ -157,7 +174,7 @@ sub index : Path : Args(0) {
                     )
                   )
                 {
-                    my $minutes_until_closing = Libki::Hours::minutes_until_closing( $c, $client_location );
+                    my $minutes_until_closing = Libki::Hours::minutes_until_closing($c, $client_location);
                     if ( defined($minutes_until_closing)
                         && $minutes_until_closing < $user->minutes )
                     {
@@ -169,7 +186,7 @@ sub index : Path : Args(0) {
 
                     $c->stash( units => $user->minutes );
 
-                    my $error = {};    # Must be initialized as a hashref
+                    my $error = {}; # Must be initialized as a hashref
                     if ( $minutes_until_closing && $minutes_until_closing <= 0 ) {
                         $c->stash( error => 'CLOSED' );
                     }
@@ -182,11 +199,12 @@ sub index : Path : Args(0) {
                     elsif ( $user->minutes < 1 ) {
                         $c->stash( error => 'NO_TIME' );
                     }
-                    elsif ( !$client->can_user_use( { user => $user, error => $error, c => $c } ) ) {
-                        $c->stash( error => $error->{reason} );
+                    elsif ( !$client->can_user_use( { user => $user, error => $error } ) ) {
+                        $c->stash( error => $error->{reason}  );
                     }
                     else {
-                        my $client = $c->model('DB::Client')->search( { name => $client_name } )->next();
+                        my $client =
+                          $c->model('DB::Client')->search( { name => $client_name } )->next();
 
                         if ($client) {
                             my $reservation = $client->reservation;
