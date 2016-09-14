@@ -40,7 +40,18 @@ while ( my $session = $session_rs->next() ) {
     if ( $user->minutes() > 0 ) {
         ## Decrement the number of minutes but don't commit to db yet
         $user->decrease_minutes(1);
-
+        ## Hack for 5 and 3 minute time warning
+        if (( $user->minutes() == 5 ) || ( $user->minutes() == 3 )) {
+            $user->create_related(
+            'messages',
+            {
+                content => $c->loc(
+                    "  Your session will end in [_1] minutes!   Please save your work!  ", 
+                     $user->minutes
+                    ),
+                }
+            );      
+        }
         ## Check to see if user qualifies for an automatic time extension
         if (   $AutomaticTimeExtensionAt
             && $user->minutes() < $AutomaticTimeExtensionAt )
