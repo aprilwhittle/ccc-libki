@@ -47,7 +47,7 @@ while ( my $session = $session_rs->next() ) {
             'messages',
             {
                 content => $c->loc(
-                    "  Your session will end in [_1] minutes!   Please save your work!  ", 
+                    "Your session will end in [_1] minutes!     \n\nPlease save your work!", 
                      $user->minutes
                     ),
                 }
