@@ -33,7 +33,10 @@ sub create : Local : Args(0) {
 
     my ( $success, $error_code, $details ) = ( 1, undef, undef );    # Defaults for non-sip using systems
 
-    unless ( $user && $user->is_guest eq 'Yes' ) {
+##################################################################################################
+    #unless ( $user && $user->is_guest ) {
+    unless ( $user->is_guest() eq 'Yes' ) {
+##################################################################################################
         if ( $c->config->{SIP}->{enable} ) {
             $log->debug("Calling Libki::SIP::authenticate_via_sip( $c, $user, $username, $password )");
             my $ret = Libki::SIP::authenticate_via_sip( $c, $user, $username, $password );
@@ -42,6 +45,16 @@ sub create : Local : Args(0) {
             $details    = $ret->{details};
             $user       = $ret->{user};
         }
+##################################################################################################
+	elsif ( $c->config->{ALMA}->{enable} ) {
+            $log->debug("Calling Libki::ALMA::authenticate_via_alma( $c, $user, $username, $password )");
+            my $ret = Libki::LDAP::authenticate_via_ldap( $c, $user, $username, $password );
+            $success    = $ret->{success};
+            $error_code = $ret->{error};
+            $details    = $ret->{details};
+            $user       = $ret->{user};
+        }
+##################################################################################################
     }
 
     if (
@@ -69,7 +82,7 @@ sub create : Local : Args(0) {
         elsif ( $c->model('DB::Reservation')->search( { user_id => $user->id() } )->next() ) {
             $c->stash( 'success' => 0, 'reason' => 'USER_ALREADY_RESERVED' );
         }
-        elsif ( !$client->can_user_use( { user => $user, error => $error, c => $c } ) ) {
+        elsif ( !$client->can_user_use( { user => $user, error => $error } ) ) {
             $log->debug('User Cannot Use Client: ' . Data::Dumper::Dumper( $error ) );
             $c->stash( %$error );
         }
