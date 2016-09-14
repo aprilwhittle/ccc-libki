@@ -25,3 +25,11 @@
     deny_on_field AB:This is the reason we are denying you  # You can require arbitrary SIP fields to have a value of Y for patrons to be allowed to log in.
                                                             # The format of the setting is Field:Message
 </SIP>
+<ALMA>
+    enable 0 # Change to 1 to enable 
+    host api.host.com
+    apikey add apikey
+    require_alma_auth 1
+    fee_limit 5.00
+    deny_on 1 # Controls if the account in inactive denial
+</ALMA>
